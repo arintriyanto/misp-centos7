@@ -58,7 +58,7 @@ checkFlavour () {
 
 # Check if misp user is present and if run as root
 checkID () {
-  debug "Checking if run as root and $MISP_USER is present"
+  echo "Checking if run as root and $MISP_USER is present"
   if [[ $EUID -eq 0 ]]; then
     echo "This script cannot be run as a root"
     clean > /dev/null 2>&1
