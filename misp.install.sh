@@ -1219,22 +1219,19 @@ installMISPRHEL () {
 
     echo "Updating tables"
     updateGOWNTRHEL
-
-    echo "Core Intallation finished, check on port 443 to see the Web UI"
-    space
+    
     echo "Installing MISP Modules"
-    space
     mispmodulesRHEL
-    echo "MISP modules installation finished."
+    
+    echo "MISP Intallation finished, check on port 80/443 to see the Web UI"
 }
 # End installMISPRHEL ()
 
 ## End Function Section ##
 
-space
+
 echo "Checking Linux distribution and flavour..."
 checkFlavour
-space
 echo "Setting MISP variables"
 source misp.variables.sh
 

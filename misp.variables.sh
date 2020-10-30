@@ -1,6 +1,7 @@
 #!/bin/bash
 export RUN_PYTHON='/usr/bin/scl enable rh-python36 '
 export RUN_MYSQL='/usr/bin/scl enable rh-mariadb102 '
+export RUN_PHP='/usr/bin/scl enable rh-php72 '
 export MISP_USER='misp'
 export MISP_PASSWORD="$(openssl rand -hex 32)"
 export PATH_TO_MISP='/var/www/MISP'
@@ -30,10 +31,7 @@ export max_execution_time='300'
 export memory_limit='2048M'
 export upload_max_filesize='50M'
 export post_max_size='50M'
-export RUN_PHP='/usr/bin/scl enable rh-php72 '
 export PHP_INI=/etc/opt/rh/rh-php72/php.ini
-export WWW_USER='apache'
-export SUDO_WWW="sudo -H -u ${WWW_USER} "
 export OPENSSL_CN=${FQDN}
 export OPENSSL_C='LU'
 export OPENSSL_ST='State'
@@ -41,7 +39,9 @@ export OPENSSL_L='Location'
 export OPENSSL_O='Organization'
 export OPENSSL_OU='Organizational Unit'
 export OPENSSL_EMAILADDRESS="info@${FQDN}"
-
+export WWW_USER="apache"
+export SUDO_WWW="sudo -H -u $WWW_USER"
+  
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
