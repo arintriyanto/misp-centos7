@@ -477,7 +477,7 @@ yumInstallCoreDeps () {
                    rh-php72-php-gd -y
 
   # Python 3.6 is now available in RHEL 7.7 base
-  sudo yum install python3 python3-devel -y
+  sudo yum install python3 python3-pip python3-devel python python-pip python-devel -y
 
   sudo systemctl enable --now rh-php72-php-fpm.service
 }

@@ -1,5 +1,6 @@
 #!/bin/bash
 export RUN_PYTHON='/usr/bin/scl enable rh-python36 '
+export RUN_MYSQL='/usr/bin/scl enable rh-mariadb102 '
 export MISP_USER='misp'
 export MISP_PASSWORD="$(openssl rand -hex 32)"
 export PATH_TO_MISP='/var/www/MISP'
