@@ -56,55 +56,6 @@ checkFlavour () {
 
 }
 
-# Check if misp user is present and if run as root
-checkID () {
-  echo "Checking if run as root and $MISP_USER is present"
-  if [[ $EUID -eq 0 ]]; then
-    echo "This script cannot be run as a root"
-    clean > /dev/null 2>&1
-    exit 1
-  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    if [[ "$UNATTENDED" != "1" ]]; then 
-      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
-      read ANSWER
-      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
-    else
-      ANSWER="y"
-    fi
-
-    if [[ $ANSWER == "y" ]]; then
-      sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-      echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
-      echo "User $MISP_USER added, password is: $MISP_PASSWORD"
-    elif [[ $ANSWER == "n" ]]; then
-      echo "Using $USER as install user, hope that is what you want."
-      echo -e "${RED}Adding $USER to groups $WWW_USER and staff${NC}"
-      MISP_USER=$USER
-      sudo adduser $MISP_USER staff
-      sudo adduser $MISP_USER $WWW_USER
-    else
-      echo "yes or no was asked, try again."
-      sudo adduser $MISP_USER staff
-      sudo adduser $MISP_USER $WWW_USER
-      exit 1
-    fi
-  else
-    echo "User ${MISP_USER} exists, skipping creation"
-    echo -e "${RED}Adding $MISP_USER to groups $WWW_USER and staff${NC}"
-    sudo adduser $MISP_USER staff
-    sudo adduser $MISP_USER $WWW_USER
-  fi
-
-  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
-  # sudo config to run $LUSER commands
-  if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
-  else
-    SUDO_CMD="sudo -H -u ${MISP_USER}"
-  fi
-
-}
-
 # Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
 space () {
   if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
@@ -1283,9 +1234,6 @@ installMISPRHEL () {
 space
 echo "Checking Linux distribution and flavour..."
 checkFlavour
-space
-echo "Checking ID..."
-checkID
 space
 echo "Setting MISP variables"
 source misp.variables.sh
