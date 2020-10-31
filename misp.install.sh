@@ -308,6 +308,7 @@ installCoreRHEL () {
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
   # The LD_LIBRARY_PATH setting is needed for rh-git218 to work
   echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  echo "env[LD_LIBRARY_PATH] = /opt/rh/httpd24/root/usr/lib64" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
   sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
   sudo systemctl restart rh-php72-php-fpm.service
   umask $UMASK
@@ -383,7 +384,7 @@ prepareDB_RHEL () {
   echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
   echo character-set-server=utf8 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
   chmod 644 /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
-  
+
   sudo systemctl restart rh-mariadb102-mariadb
 
   sudo yum install expect -y

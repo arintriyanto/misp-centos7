@@ -59,15 +59,15 @@ mispmodulesRHEL () {
   # some misp-modules dependencies
   sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
 
-  sudo chmod 777 /usr/local/src
-  sudo chown root:root /usr/local/src
+  sudo chmod 2777 /usr/local/src
+  sudo chown root:users /usr/local/src
   cd /usr/local/src/
   false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-modules.git; done
   cd misp-modules
   # pip install
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip3 install censys pyfaup
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip3 install -U -I -r REQUIREMENTS
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip3 install -U .
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install censys pyfaup
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 
   sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
@@ -135,13 +135,6 @@ mispmodulesRHEL () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
-  
-  echo "Restarting MISP Modules services!!!....."
-  sudo systemctl restart misp-modules.service
-  echo "Restarting PHP72-FPM services!!!....."
-  sudo systemctl restart rh-php72-php-fpm.service
-  echo "Restarting HTTP services !!!....."
-  sudo systemctl restart httpd.service
 
 }
 
