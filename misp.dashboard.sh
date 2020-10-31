@@ -59,24 +59,32 @@ checkFlavour () {
 # Main MISP Dashboard install function
 # $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
 mispDashboardRHEL () {
-  sudo yum install wget screen rh-python36 -y
-  sudo mkdir /var/www/misp-dashboard
-  sudo chown -R $WWW_USER:$WWW_USER /var/www/misp-dashboard
+  debug "Install misp-dashboard"  
+  yum install wget screen net-tools -y
+  # Install pyzmq to main MISP venv
+  debug "Installing PyZMQ"
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+  cd /var/www
+  sudo mkdir misp-dashboard
+  sudo chown $WWW_USER:$WWW_USER misp-dashboard
+  
   cd /var/www/misp-dashboard
-  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git /var/www/misp-dashboard
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git; done
+  cd misp-dashboard
   sudo sed -i -E 's/sudo apt/#sudo apt/' install_dependencies.sh
   sudo sed -i -E 's/rhel/centos/' install_dependencies.sh
-  sudo sed -i -E 's/virtualenv -p python3 DASHENV/\/usr\/bin\/scl enable rh-python36 \"virtualenv -p python3 DASHENV\"/' install_dependencies.sh
+  #sudo sed -i -E 's/virtualenv -p python3 DASHENV/\/usr\/bin\/scl enable rh-python36 \"virtualenv -p python3 DASHENV\"/' install_dependencies.sh
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/httpd/conf/httpd.conf
-  sudo yum install rh-python36-mod_wsgi -y
-  sudo cp /opt/rh/httpd24/root/usr/lib64/httpd/modules/mod_rh-python36-wsgi.so /etc/httpd/modules/
-  sudo cp /opt/rh/httpd24/root/etc/httpd/conf.modules.d/10-rh-python36-wsgi.conf /etc/httpd/conf.modules.d/
+#  sudo yum install rh-python36-mod_wsgi -y
+#  sudo cp /opt/rh/httpd24/root/usr/lib64/httpd/modules/mod_rh-python36-wsgi.so /etc/httpd/modules/
+#  sudo cp /opt/rh/httpd24/root/etc/httpd/conf.modules.d/10-rh-python36-wsgi.conf /etc/httpd/conf.modules.d/
 
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local
       ServerName misp.local
+
       DocumentRoot /var/www/misp-dashboard
 
       WSGIDaemonProcess misp-dashboard \
@@ -100,24 +108,34 @@ mispDashboardRHEL () {
          header-buffer-size=0 \
          response-buffer-size=0 \
          server-metrics=Off
+
       WSGIScriptAlias / /var/www/misp-dashboard/misp-dashboard.wsgi
+
       <Directory /var/www/misp-dashboard>
           WSGIProcessGroup misp-dashboard
           WSGIApplicationGroup %{GLOBAL}
           Require all granted
       </Directory>
+
       LogLevel info
       ErrorLog /var/log/httpd/misp.dashboard.local_error.log
       CustomLog /var/log/httpd/misp.dashboard.local_access.log combined
       ServerSignature Off
   </VirtualHost>" | sudo tee /etc/httpd/conf.d/misp.dashboard.conf
-
-  sudo semanage port -a -t http_port_t -p tcp 8001
+  
+  #With selinux endforcing
+  #sudo semanage port -a -t http_port_t -p tcp 8001
+  echo "Restart http services"
   sudo systemctl restart httpd.service 
+  echo "Add firewall rule http services"
   sudo firewall-cmd --zone=public --add-port=8001/tcp --permanent
   sudo firewall-cmd --reload
+  
+  # Needs to be started after apache2 is reloaded so the port status check works
+  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
 
   # Add misp-dashboard to rc.local to start on boot.
+  echo "Add misp-dashboard to rc.local to start on boot"
   sudo sed -i -e '$i \sudo -u apache bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
 
   # Enable ZeroMQ for misp-dashboard
