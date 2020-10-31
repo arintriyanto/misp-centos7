@@ -284,19 +284,23 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/PyMISP
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 
+  # Gtcaca & Faup needs manual compilation
+  sudo yum install gcc-c++ libcaca-devel -y
   cd /tmp
-  $SUDO_WWW git clone https://github.com/stricaud/faup.git
-  $SUDO_WWW git clone https://github.com/stricaud/gtcaca.git
-  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  #$SUDO_CMD git clone https://github.com/MISP/misp-modules.git;
+  $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
+  $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
+  #sudo chown -R ${$WWW_USER}:${$WWW_USER} faup gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} gtcaca faup
   cd gtcaca
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD cmake3 .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD cmake3 .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
 
@@ -916,12 +920,6 @@ installMISPRHEL () {
     
     echo "Installing Centos EPEL..."
     centosEPEL
-
-    echo "The following DB Passwords were generated..."
-    echo "========================================================="
-    echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
-    echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
-    echo "========================================================="
 
     echo "Installing System Dependencies"
     yumInstallCoreDeps
