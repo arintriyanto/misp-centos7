@@ -65,9 +65,11 @@ mispmodulesRHEL () {
   false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-modules.git; done
   cd misp-modules
   # pip install
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install censys pyfaup
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-  sudo yum install rh-ruby24 rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
+
+  sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
   echo "[Unit]
   Description=MISP modules
@@ -77,10 +79,9 @@ mispmodulesRHEL () {
   Type=simple
   User=$WWW_USER
   Group=$WWW_USER
-  #WorkingDirectory=/usr/local/src/misp-modules
-  #Environment="PATH=/var/www/MISP/venv/bin"
-  #ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
-  ExecStart=/usr/bin/scl enable rh-python36 rh-ruby24 '/var/www/MISP/venv/bin/misp-modules –l 127.0.0.1 –s'
+  WorkingDirectory=/usr/local/src/misp-modules
+  Environment="PATH=/var/www/MISP/venv/bin"
+  ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
   Restart=always
   RestartSec=10
 
@@ -89,7 +90,10 @@ mispmodulesRHEL () {
 
   sudo systemctl daemon-reload
   # Test misp-modules
+  echo "Testing MISP Modules!!!....."
   $SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &
+
+  echo "Enable MISP Modules....."
   sudo systemctl enable --now misp-modules
 
   # Enable Enrichment, set better timeouts
