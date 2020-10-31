@@ -176,7 +176,11 @@ yumInstallCoreDeps () {
                    rh-php72-php-gd -y
 
   # Python 3.6 is now available in RHEL 7.7 base
-  sudo yum install python3 python3-pip python3-devel python python-pip python-devel -y
+  sudo yum install python3 python3-pip python3-devel -y
+  
+  # Install Python 3.6 from SCL, see
+  # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
+  #sudo yum install rh-python36 -y
 
   sudo systemctl enable --now rh-php72-php-fpm.service
 }
@@ -204,6 +208,7 @@ installCoreRHEL () {
   # Create a python3 virtualenv
   sudo pip3 install virtualenv
   $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
+  #$SUDO_WWW $RUN_PYTHON -- virtualenv -p python3 $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
@@ -793,7 +798,7 @@ mispmodulesRHEL () {
   # pip install
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-  sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
+  sudo yum install rh-ruby24 rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
   echo "[Unit]
   Description=MISP modules
@@ -806,6 +811,7 @@ mispmodulesRHEL () {
   WorkingDirectory=/usr/local/src/misp-modules
   Environment="PATH=/var/www/MISP/venv/bin"
   ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
+  #ExecStart=/usr/bin/scl enable rh-python36 rh-ruby24 '/var/www/MISP/venv/bin/misp-modules –l 127.0.0.1 –s'
   Restart=always
   RestartSec=10
 
@@ -893,11 +899,6 @@ theEndRHEL () {
   echo "sudo postfix reload"
   space
   echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
-  space
-
-  if [[ "$USER" != "$MISP_USER" && "$UNATTENDED" != "1" ]]; then
-    sudo su - ${MISP_USER}
-  fi
 }
 ## End Function Section Nothing allowed in .md after this line ##
 
@@ -909,19 +910,18 @@ theEndRHEL () {
 installMISPRHEL () {
     echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
-    
     id -u "${MISP_USER}" > /dev/null
-    if [[ $? -eq 1 ]]; then
-      echo "Creating MISP user"
-      sudo useradd -r "${MISP_USER}"
-    fi 
+    echo "Creating MISP user"
+    sudo useradd "${MISP_USER}"
     
+    echo "Installing Centos EPEL..."
     centosEPEL
 
     echo "The following DB Passwords were generated..."
-
+    echo "========================================================="
     echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
     echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+    echo "========================================================="
 
     echo "Installing System Dependencies"
     yumInstallCoreDeps
@@ -963,8 +963,8 @@ installMISPRHEL () {
     echo "Updating tables"
     updateGOWNTRHEL
     
-    echo "Installing MISP Modules"
-    mispmodulesRHEL
+#    echo "Installing MISP Modules"
+#    mispmodulesRHEL
 
     space
     theEndRHEL
