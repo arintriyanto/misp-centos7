@@ -57,8 +57,9 @@ checkFlavour () {
 
 # <snippet-begin 4_misp-dashboardRHEL.sh>
 # Main MISP Dashboard install function
+# $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
 mispDashboardRHEL () {
-  sudo yum install wget screen -y
+  sudo yum install wget screen rh-python36 -y
   sudo mkdir /var/www/misp-dashboard
   sudo chown -R $WWW_USER:$WWW_USER /var/www/misp-dashboard
   cd /var/www/misp-dashboard
@@ -113,6 +114,8 @@ mispDashboardRHEL () {
 
   sudo semanage port -a -t http_port_t -p tcp 8001
   sudo systemctl restart httpd.service 
+  sudo firewall-cmd --zone=public --add-port=8001/tcp --permanent
+  sudo firewall-cmd --reload
 
   # Add misp-dashboard to rc.local to start on boot.
   sudo sed -i -e '$i \sudo -u apache bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
@@ -137,9 +140,9 @@ mispDashboardRHEL () {
 }
 # <snippet-end 4_misp-dashboardRHEL.sh>
 
-echo "Checking Linux distribution and flavour..."
-checkFlavour
 
+
+# Starting .... !! ##
 echo "Setting MISP Dashboard variables"
 WWW_USER="apache"
 SUDO_WWW="sudo -H -u $WWW_USER"
@@ -149,12 +152,16 @@ RUN_PHP='/usr/bin/scl enable rh-php72 '
 PATH_TO_MISP='/var/www/MISP'
 CAKE="$PATH_TO_MISP/app/Console/cake"
 
+echo "Checking Linux distribution and flavour..."
+checkFlavour
+
+sudo firewall-cmd --zone=public --remove-port=8001/tcp --permanent
+sudo firewall-cmd --reload
+
 # If RHEL/CentOS is detected, run appropriate script
 if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
   echo "Proceeding with MISP Dashboard installation on CentOS ${FLAVOUR} - ${dist_version}" 
   mispDashboardRHEL
-  sudo firewall-cmd --zone=public --add-port=8001/tcp --permanent
-  sudo firewall-cmd --reload
   echo "MISP Dashboard intallation finished!!!....."
   exit
 fi
