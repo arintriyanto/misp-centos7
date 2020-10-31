@@ -145,7 +145,7 @@ echo "Setting MISP variables"
 WWW_USER="apache"
 SUDO_WWW="sudo -H -u $WWW_USER"
 RUN_PYTHON='/usr/bin/scl enable rh-python36 '
-RUN_MYSQL='/usr/bin/scl enable rh-mariadb102 '
+RUN_MYSQL='/usr/bin/scl enable rh-mariadb101 '
 RUN_PHP='/usr/bin/scl enable rh-php72 '
 PATH_TO_MISP='/var/www/MISP'
 CAKE="$PATH_TO_MISP/app/Console/cake"

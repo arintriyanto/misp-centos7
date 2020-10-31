@@ -159,7 +159,7 @@ yumInstallCoreDeps () {
                    httpd24 \
                    mod_ssl \
                    rh-redis32 \
-                   rh-mariadb102 \
+                   rh-mariadb101 \
                    libxslt-devel zlib-devel ssdeep-devel -y
 
   # Enable and start redis
@@ -375,22 +375,22 @@ installCake_RHEL ()
 }
 
 prepareDB_RHEL () {
-  RUN_MYSQL="/usr/bin/scl enable rh-mariadb102"
+  RUN_MYSQL="/usr/bin/scl enable rh-mariadb101"
   # Enable, start and secure your mysql database server
-  sudo systemctl enable --now rh-mariadb102-mariadb.service
-  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
-  echo bind-address=127.0.0.1 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+  sudo systemctl enable --now rh-mariadb101-mariadb.service
+  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb101/my.cnf.d/bind-address.cnf
+  echo bind-address=127.0.0.1 |sudo tee -a /etc/opt/rh/rh-mariadb101/my.cnf.d/bind-address.cnf
    
-  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
-  echo character-set-server=utf8 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
-  chmod 644 /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
+  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb101/my.cnf.d/character-set.cnf
+  echo character-set-server=utf8 |sudo tee -a /etc/opt/rh/rh-mariadb101/my.cnf.d/character-set.cnf
+  chmod 644 /etc/opt/rh/rh-mariadb101/my.cnf.d/character-set.cnf
 
-  sudo systemctl restart rh-mariadb102-mariadb
+  sudo systemctl restart rh-mariadb101-mariadb
 
   sudo yum install expect -y
 
   ## The following needs some thoughts about scl enable foo
-  #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
+  #if [[ ! -e /var/opt/rh/rh-mariadb101/lib/mysql/misp/users.ibd ]]; then
 
   # We ask interactively your password if not run as root
   pw=""
@@ -401,7 +401,7 @@ prepareDB_RHEL () {
   expect -f - <<-EOF
     set timeout 10
 
-    spawn sudo scl enable rh-mariadb102 mysql_secure_installation
+    spawn sudo scl enable rh-mariadb101 mysql_secure_installation
     expect {
       "*sudo*" {
         send "$pw\r"
@@ -430,14 +430,14 @@ EOF
 
   sudo yum remove tcl expect -y
 
-  sudo systemctl restart rh-mariadb102-mariadb
+  sudo systemctl restart rh-mariadb101-mariadb
 
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
+  scl enable rh-mariadb101 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
+  scl enable rh-mariadb101 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
+  scl enable rh-mariadb101 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
+  scl enable rh-mariadb101 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
 
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
+  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb101 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
 }
 
 apacheConfig_RHEL () {
@@ -638,13 +638,13 @@ EOF
 configWorkersRHEL () {
   echo "[Unit]
   Description=MISP background workers
-  After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
+  After=rh-mariadb101-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
 
   [Service]
   Type=forking
   User=$WWW_USER
   Group=$WWW_USER
-  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 $PATH_TO_MISP/app/Console/worker/start.sh
+  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb101 $PATH_TO_MISP/app/Console/worker/start.sh
   Restart=always
   RestartSec=10
 
