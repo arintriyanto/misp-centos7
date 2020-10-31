@@ -41,7 +41,5 @@ export OPENSSL_OU='Organizational Unit'
 export OPENSSL_EMAILADDRESS="info@${FQDN}"
 export WWW_USER="apache"
 export SUDO_WWW="sudo -H -u $WWW_USER"
-  
-
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"

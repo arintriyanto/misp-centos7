@@ -135,13 +135,19 @@ mispmodulesRHEL () {
 
 echo "Checking Linux distribution and flavour..."
 checkFlavour
+
 echo "Setting MISP variables"
-source misp.variables.sh
+WWW_USER="apache"
+SUDO_WWW="sudo -H -u $WWW_USER"
+RUN_PYTHON='/usr/bin/scl enable rh-python36 '
+RUN_MYSQL='/usr/bin/scl enable rh-mariadb102 '
+RUN_PHP='/usr/bin/scl enable rh-php72 '
+PATH_TO_MISP='/var/www/MISP'
+CAKE="$PATH_TO_MISP/app/Console/cake"
 
 # If RHEL/CentOS is detected, run appropriate script
 if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
-  echo "Proceeding with MISP Modules installation on CentOS ${FLAVOUR} - ${dist_version}"
-  space 
+  echo "Proceeding with MISP Modules installation on CentOS ${FLAVOUR} - ${dist_version}" 
   mispmodulesRHEL
   echo "MISP Modules intallation finished!!!....."
   exit
