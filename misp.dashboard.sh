@@ -64,6 +64,7 @@ mispDashboardRHEL () {
   cd /var/www/misp-dashboard
   $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git /var/www/misp-dashboard
   sudo sed -i -E 's/sudo apt/#sudo apt/' install_dependencies.sh
+  sudo sed -i -E 's/rhel/centos/' install_dependencies.sh
   sudo sed -i -E 's/virtualenv -p python3 DASHENV/\/usr\/bin\/scl enable rh-python36 \"virtualenv -p python3 DASHENV\"/' install_dependencies.sh
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
@@ -108,12 +109,10 @@ mispDashboardRHEL () {
       ErrorLog /var/log/httpd/misp-dashboard.local_error.log
       CustomLog /var/log/httpd/misp-dashboard.local_access.log combined
       ServerSignature Off
-  </VirtualHost>" | sudo tee /etc/httpd/conf.d/misp-dashboard.conf
+  </VirtualHost>" | sudo tee /etc/httpd/conf.d/misp.dashboard.conf
 
   sudo semanage port -a -t http_port_t -p tcp 8001
   sudo systemctl restart httpd.service 
-  sudo firewall-cmd --zone=public --add-port=8001/tcp --permanent
-  sudo firewall-cmd --reload
 
   # Add misp-dashboard to rc.local to start on boot.
   sudo sed -i -e '$i \sudo -u apache bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
@@ -154,6 +153,8 @@ CAKE="$PATH_TO_MISP/app/Console/cake"
 if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
   echo "Proceeding with MISP Dashboard installation on CentOS ${FLAVOUR} - ${dist_version}" 
   mispDashboardRHEL
+  sudo firewall-cmd --zone=public --add-port=8001/tcp --permanent
+  sudo firewall-cmd --reload
   echo "MISP Dashboard intallation finished!!!....."
   exit
 fi
