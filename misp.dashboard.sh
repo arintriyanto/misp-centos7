@@ -107,8 +107,8 @@ mispDashboardRHEL () {
           Require all granted
       </Directory>
       LogLevel info
-      ErrorLog /var/log/httpd/misp-dashboard.local_error.log
-      CustomLog /var/log/httpd/misp-dashboard.local_access.log combined
+      ErrorLog /var/log/httpd/misp.dashboard.local_error.log
+      CustomLog /var/log/httpd/misp.dashboard.local_access.log combined
       ServerSignature Off
   </VirtualHost>" | sudo tee /etc/httpd/conf.d/misp.dashboard.conf
 
