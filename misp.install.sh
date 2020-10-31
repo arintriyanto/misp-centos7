@@ -331,19 +331,32 @@ installCake_RHEL ()
   sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
   sudo scl enable rh-php72 'yes no|pecl install redis'
   echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-redis.ini
+  sudo chmod 644 /etc/opt/rh/rh-php72/php.d/99-redis.ini
+  #echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
+  #sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
 
   sudo ln -s /usr/lib64/libfuzzy.so /usr/lib/libfuzzy.so
   sudo scl enable rh-php72 'pecl install ssdeep'
   echo "extension=ssdeep.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
+  sudo chmod 644 /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
+
+  #echo "extension=ssdeep.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/ssdeep.ini
+  #sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/ssdeep.ini /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
 
   # Install gnupg extension
   sudo yum install gpgme-devel -y
+  
   sudo scl enable rh-php72 'pecl install gnupg'
   echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
-  sudo systemctl restart rh-php72-php-fpm.service
+  sudo chmod 644 /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
+  #echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini
+  #sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
 
   # If you have not yet set a timezone in php.ini
-  echo 'date.timezone = "Asia/Jakarta"' |sudo tee /etc/opt/rh/rh-php72/php.d/timezone.ini
+  echo 'date.timezone = "Asia/Jakarta"' |sudo tee /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+  sudo chmod 644 /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+  #sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
+  sudo systemctl restart rh-php72-php-fpm.service
 
   # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
   # max_execution_time = 300
@@ -366,6 +379,11 @@ prepareDB_RHEL () {
   sudo systemctl enable --now rh-mariadb102-mariadb.service
   echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
   echo bind-address=127.0.0.1 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+   
+  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
+  echo character-set-server=utf8 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
+  chmod 644 /etc/opt/rh/rh-mariadb102/my.cnf.d/character-set.cnf
+  
   sudo systemctl restart rh-mariadb102-mariadb
 
   sudo yum install expect -y

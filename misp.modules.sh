@@ -131,6 +131,14 @@ mispmodulesRHEL () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
+  
+  echo "Restarting MISP Modules services!!!....."
+  sudo systemctl restart misp-modules.service
+  echo "Restarting PHP72-FPM services!!!....."
+  sudo systemctl restart rh-php72-php-fpm.service
+  echo "Restarting HTTP services !!!....."
+  sudo systemctl restart httpd.service
+
 }
 
 echo "Checking Linux distribution and flavour..."
