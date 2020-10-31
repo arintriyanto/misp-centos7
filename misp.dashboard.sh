@@ -57,12 +57,12 @@ checkFlavour () {
 
 # <snippet-begin 4_misp-dashboardRHEL.sh>
 # Main MISP Dashboard install function
-mispDashboard () {
+mispDashboardRHEL () {
   sudo yum install wget screen -y
   sudo mkdir /var/www/misp-dashboard
-  sudo chown $WWW_USER:$WWW_USER /var/www/misp-dashboard
-  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git /var/www/misp-dashboard
+  sudo chown -R $WWW_USER:$WWW_USER /var/www/misp-dashboard
   cd /var/www/misp-dashboard
+  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git /var/www/misp-dashboard
   sudo sed -i -E 's/sudo apt/#sudo apt/' install_dependencies.sh
   sudo sed -i -E 's/virtualenv -p python3 DASHENV/\/usr\/bin\/scl enable rh-python36 \"virtualenv -p python3 DASHENV\"/' install_dependencies.sh
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
