@@ -448,7 +448,7 @@ apacheConfig_RHEL () {
   sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
   
   #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
-  #sudo rm /etc/httpd/conf.d/ssl.conf
+  sudo rm /etc/httpd/conf.d/ssl.conf
   #sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.conf
   #sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
@@ -809,84 +809,6 @@ updateGOWNTRHEL () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin updateObjectTemplates "1337"
 }
 
-mispmodulesRHEL () {
-  # some misp-modules dependencies
-  sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
-
-  sudo chmod 2777 /usr/local/src
-  sudo chown root:users /usr/local/src
-  cd /usr/local/src/
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-modules.git; done
-  cd misp-modules
-  # pip install
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-  sudo yum install rh-ruby24 rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
-
-  echo "[Unit]
-  Description=MISP modules
-  After=misp-workers.service
-
-  [Service]
-  Type=simple
-  User=$WWW_USER
-  Group=$WWW_USER
-  WorkingDirectory=/usr/local/src/misp-modules
-  Environment="PATH=/var/www/MISP/venv/bin"
-  ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
-  #ExecStart=/usr/bin/scl enable rh-python36 rh-ruby24 '/var/www/MISP/venv/bin/misp-modules –l 127.0.0.1 –s'
-  Restart=always
-  RestartSec=10
-
-  [Install]
-  WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
-
-  sudo systemctl daemon-reload
-  # Test misp-modules
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &
-  sudo systemctl enable --now misp-modules
-
-  # Enable Enrichment, set better timeouts
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-  # TODO:"Investigate why the next one fails"
-  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
-
-  # Enable Import modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
-
-  # Enable Export modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
-}
-
 # Final function to let the user know what happened
 theEndRHEL () {
   space
@@ -980,9 +902,6 @@ installMISPRHEL () {
     echo "Updating tables"
     updateGOWNTRHEL
     
-#    echo "Installing MISP Modules"
-#    mispmodulesRHEL
-
     space
     theEndRHEL
     echo "MISP Intallation finished, check on port 80/443 to see the Web UI"

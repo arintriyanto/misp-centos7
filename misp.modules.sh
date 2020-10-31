@@ -89,12 +89,14 @@ mispmodulesRHEL () {
   WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
 
   sudo systemctl daemon-reload
+
   # Test misp-modules
   echo "Testing MISP Modules!!!....."
   $SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &
-
+  
   echo "Enable MISP Modules....."
-  sudo systemctl enable --now misp-modules
+  sudo systemctl enable misp-modules.service
+  sudo systemctl start misp-modules.service
 
   # Enable Enrichment, set better timeouts
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
@@ -136,6 +138,9 @@ mispmodulesRHEL () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 
+  sudo systemctl restart httpd.service
+  sudo systemctl restart rh-php72-php-fpm.service
+  
 }
 
 echo "Checking Linux distribution and flavour..."
