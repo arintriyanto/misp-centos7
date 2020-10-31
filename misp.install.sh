@@ -70,297 +70,6 @@ space () {
   echo ""
 }
 
-# Check locale
-checkLocale () {
-  echo "Checking Locale"
-  # If locale is missing, generate and install a common UTF-8
-  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) -eq "1" ]]; then
-    checkAptLock
-    sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
-    sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
-    sudo locale-gen en_US.UTF-8
-    sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-  fi
-}
-
-# check is /usr/local/src is RW by misp user
-checkUsrLocalSrc () {
-  echo ""
-  if [[ -e /usr/local/src ]]; then
-    WRITEABLE=$(sudo -H -u $MISP_USER touch /usr/local/src 2> /dev/null ; echo $?)
-    if [[ "$WRITEABLE" == "0" ]]; then
-      echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
-    else
-      # TODO: The below might be shorter, more elegant and more modern
-      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
-      sudo chmod 2775 /usr/local/src
-      sudo chown root:staff /usr/local/src
-    fi
-  else
-    echo "/usr/local/src does not exist, creating."
-    mkdir -p /usr/local/src
-    sudo chmod 2775 /usr/local/src
-    # TODO: Better handling /usr/local/src permissions
-    if [[ "$(cat /etc/group |grep staff > /dev/null 2>&1)" == "0" ]]; then
-      sudo chown root:staff /usr/local/src
-    fi
-  fi
-}
-
-setBaseURL () {
-  echo "Setting Base URL"
-
-  CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
-  IFACE=$(echo $CONN |awk {'print $1'})
-  IP=$(echo $CONN |awk {'print $2'}| cut -f1 -d/)
-
-  [[ -n ${MANUFACTURER} ]] || checkManufacturer
-
-  if [[ "${MANUFACTURER}" != "innotek GmbH" ]] && [[ "$MANUFACTURER" != "VMware, Inc." ]] && [[ "$MANUFACTURER" != "QEMU" ]]; then
-    echo "We guess that this is a physical machine and cannot reliably guess what the MISP_BASEURL might be."
-
-    if [[ "${UNATTENDED}" != "1" ]]; then 
-      echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
-      echo "Do you want to change it now? (y/n) "
-      read ANSWER
-      ANSWER=$(echo ${ANSWER} |tr '[:upper:]' '[:lower:]')
-      if [[ "${ANSWER}" == "y" ]]; then
-        if [[ ! -z ${IP} ]]; then
-          echo "It seems you have an interface called ${IFACE} UP with the following IP: ${IP} - FYI"
-          echo "Thus your Base URL could be: https://${IP}"
-        fi
-        echo "Please enter the Base URL, e.g: 'https://example.org'"
-        echo ""
-        echo -n "Enter Base URL: "
-        read MISP_BASEURL
-      else
-        MISP_BASEURL='""'
-      fi
-    else
-        MISP_BASEURL="https://misp.local"
-        # Webserver configuration
-        FQDN='misp.local'
-    fi
-  elif [[ "${KALI}" == "1" ]]; then
-    MISP_BASEURL="https://misp.local"
-    # Webserver configuration
-    FQDN='misp.local'
-  elif [[ "${MANUFACTURER}" == "innotek GmbH" ]]; then
-    MISP_BASEURL='https://localhost:8443'
-    IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
-    sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
-    # Webserver configuration
-    FQDN='localhost.localdomain'
-  elif [[ "${MANUFACTURER}" == "VMware, Inc." ]]; then
-    MISP_BASEURL='""'
-    # Webserver configuration
-    FQDN='misp.local'
-  else
-    MISP_BASEURL='""'
-    # Webserver configuration
-    FQDN='misp.local'
-  fi
-}
-
-
-# Main composer function
-composer () {
-  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
-}
-
-
-# TODO: FIX somehow the alias of the function does not work
-# Composer on php 7.0 does not need any special treatment the provided phar works well
-alias composer70=composer
-# Composer on php 7.2 does not need any special treatment the provided phar works well
-alias composer72=composer
-# Composer on php 7.3 does not need any special treatment the provided phar works well
-alias composer73=composer
-
-
-# Final function to let the user know what happened
-theEnd () {
-  space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
-
-  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
-  # clear -x
-  space
-  echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
-  echo
-  echo "User: admin@admin.test"
-  echo "Password: admin"
-  space
-  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
-  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
-  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
-  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
-  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
-  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
-  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
-  echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
-  echo "/home/${MISP_USER}/mysql.txt"
-  echo -e "${RED}Contents:${NC}"
-  cat /home/${MISP_USER}/mysql.txt
-  echo "/home/${MISP_USER}/MISP-authkey.txt"
-  echo -e "${RED}Contents:${NC}"
-  cat /home/${MISP_USER}/MISP-authkey.txt
-  space
-  echo -e "The ${RED}LOCAL${NC} system credentials:"
-  echo "User: ${MISP_USER}"
-  echo "Password: ${MISP_PASSWORD} # Or the password you used of your custom user"
-  space
-  echo "GnuPG Passphrase is: ${GPG_PASSPHRASE}"
-  space
-  echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
-  echo
-  echo "sudo postconf -e 'relayhost = example.com'"
-  echo "sudo postfix reload"
-  space
-  echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
-  space
-  if [[ "$UNATTENDED" == "1" ]]; then
-    echo -e "${RED}Unattended install!${NC}"
-    echo -e "This means we guessed the Base URL, it might be wrong, please double check."
-    space
-  fi
-
-  if [[ "$PACKER" == "1" ]]; then
-    echo -e "${RED}This was an Automated Packer install!${NC}"
-    echo -e "This means we forced an unattended install."
-    space
-  fi
-
-  if [[ "$USER" != "$MISP_USER" && "$UNATTENDED" != "1" ]]; then
-    sudo su - ${MISP_USER}
-  fi
-}
-## End Function Section Nothing allowed in .md after this line ##
-
-# Main function to fix permissions to something sane
-permissions () {
-  echo "Setting permissions"
-  sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
-  sudo chmod -R 750 ${PATH_TO_MISP}
-  sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
-  sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
-  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
-}
-
-configMISP () {
-  echo "Generating ${LBLUE}MISP${NC} config files"
-  # There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
-
-  echo "<?php
-  class DATABASE_CONFIG {
-          public \$default = array(
-                  'datasource' => 'Database/Mysql',
-                  //'datasource' => 'Database/Postgres',
-                  'persistent' => false,
-                  'host' => '$DBHOST',
-                  'login' => '$DBUSER_MISP',
-                  'port' => 3306, // MySQL & MariaDB
-                  //'port' => 5432, // PostgreSQL
-                  'password' => '$DBPASSWORD_MISP',
-                  'database' => '$DBNAME',
-                  'prefix' => '',
-                  'encoding' => 'utf8',
-          );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
-
-  # Important! Change the salt key in ${PATH_TO_MISP}/app/Config/config.php
-  # The salt key must be a string at least 32 bytes long.
-  # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
-  # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
-  # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
-
-  # and make sure the file permissions are still OK
-  sudo chown -R $WWW_USER:$WWW_USER ${PATH_TO_MISP}/app/Config
-  sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
-}
-
-# Core cake commands to tweak MISP and aleviate some of the configuration pains
-# The $RUN_PHP is ONLY set on RHEL/CentOS installs and can thus be ignored
-# This file is NOT an excuse to NOT read the settings and familiarize ourselves with them ;)
-
-
-# Generate GnuPG key
-setupGnuPG () {
-  if [ ! -d $PATH_TO_MISP/.gnupg ]; then
-    # The email address should match the one set in the config.php
-    # set in the configuration menu in the administration menu configuration file
-    echo "%echo Generating a default key
-      Key-Type: default
-      Key-Length: $GPG_KEY_LENGTH
-      Subkey-Type: default
-      Name-Real: $GPG_REAL_NAME
-      Name-Comment: $GPG_COMMENT
-      Name-Email: $GPG_EMAIL_ADDRESS
-      Expire-Date: 0
-      Passphrase: $GPG_PASSPHRASE
-      # Do a commit here, so that we can later print "done"
-      %commit
-    %echo done" > /tmp/gen-key-script
-
-    $SUDO_WWW gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
-
-    # Export the public key to the webroot
-    $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | $SUDO_WWW tee $PATH_TO_MISP/app/webroot/gpg.asc
-  fi
-}
-
-logRotation () {
-  # MISP saves the stdout and stderr of its workers in ${PATH_TO_MISP}/app/tmp/logs
-  # To rotate these logs install the supplied logrotate script:
-  sudo cp ${PATH_TO_MISP}/INSTALL/misp.logrotate /etc/logrotate.d/misp
-  sudo chmod 0640 /etc/logrotate.d/misp
-}
-
-backgroundWorkers () {
-  echo "Setting up background workers"
-  # To make the background workers start on boot
-  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-
-  if [ ! -e /etc/rc.local ]
-  then
-      echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
-      echo 'exit 0' | sudo tee -a /etc/rc.local
-      sudo chmod u+x /etc/rc.local
-  fi
-
-  echo "[Unit]
-Description=MISP background workers
-After=network.target
-
-[Service]
-Type=forking
-User=${WWW_USER}
-Group=${WWW_USER}
-ExecStart=${PATH_TO_MISP}/app/Console/worker/start.sh
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target" | sudo tee /etc/systemd/system/misp-workers.service
-
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now misp-workers
-
-  # Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
-  sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
-  sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
-  sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-}
-
-
 # Main MISP Dashboard install function
 mispDashboard () {
   echo "Install misp-dashboard"
@@ -430,13 +139,6 @@ mispDashboard () {
   sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
 }
 
-enableReposRHEL () {
-  sudo subscription-manager refresh
-  sudo subscription-manager repos --enable rhel-7-server-optional-rpms
-  sudo subscription-manager repos --enable rhel-7-server-extras-rpms
-  sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
-}
-
 centosEPEL () {
   # We need some packages from the Extra Packages for Enterprise Linux repository
   sudo yum install epel-release -y
@@ -453,6 +155,7 @@ enableEPEL () {
 yumInstallCoreDeps () {
   # Install the dependencies:
   sudo yum install gcc git zip rh-git218 \
+                   htop \
                    httpd24 \
                    mod_ssl \
                    rh-redis32 \
@@ -462,10 +165,6 @@ yumInstallCoreDeps () {
   # Enable and start redis
   sudo systemctl enable --now rh-redis32-redis.service
 
-  WWW_USER="apache"
-  SUDO_WWW="sudo -H -u $WWW_USER"
-  RUN_PHP="/usr/bin/scl enable rh-php72"
-  PHP_INI="/etc/opt/rh/rh-php72/php.ini"
   # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
   sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
                    rh-php72-php-mysqlnd \
@@ -1159,6 +858,49 @@ mispmodulesRHEL () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 }
 
+# Final function to let the user know what happened
+theEndRHEL () {
+  space
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
+
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
+  space
+  echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
+  echo
+  echo "User: admin@admin.test"
+  echo "Password: admin"
+  space
+  echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
+  echo "/home/${MISP_USER}/mysql.txt"
+  echo -e "${RED}Contents:${NC}"
+  cat /home/${MISP_USER}/mysql.txt
+  echo "/home/${MISP_USER}/MISP-authkey.txt"
+  echo -e "${RED}Contents:${NC}"
+  cat /home/${MISP_USER}/MISP-authkey.txt
+  space
+  echo -e "The ${RED}LOCAL${NC} system credentials:"
+  echo "User: ${MISP_USER}"
+  echo "Password: ${MISP_PASSWORD} # Or the password you used of your custom user"
+  space
+  echo "GnuPG Passphrase is: ${GPG_PASSPHRASE}"
+  space
+  echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
+  echo
+  echo "sudo postconf -e 'relayhost = example.com'"
+  echo "sudo postfix reload"
+  space
+  echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
+  space
+
+  if [[ "$USER" != "$MISP_USER" && "$UNATTENDED" != "1" ]]; then
+    sudo su - ${MISP_USER}
+  fi
+}
+## End Function Section Nothing allowed in .md after this line ##
+
 ### END AUTOMATED SECTION ###
 
 # This function will generate the main installer.
@@ -1177,6 +919,7 @@ installMISPRHEL () {
     centosEPEL
 
     echo "The following DB Passwords were generated..."
+
     echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
     echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 
@@ -1222,13 +965,13 @@ installMISPRHEL () {
     
     echo "Installing MISP Modules"
     mispmodulesRHEL
-    
+
+    space
+    theEndRHEL
     echo "MISP Intallation finished, check on port 80/443 to see the Web UI"
 }
 # End installMISPRHEL ()
-
 ## End Function Section ##
-
 
 echo "Checking Linux distribution and flavour..."
 checkFlavour
