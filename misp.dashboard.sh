@@ -59,10 +59,15 @@ checkFlavour () {
 # Main MISP Dashboard install function
 # $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
 mispDashboardRHEL () {
-  debug "Install misp-dashboard"  
+  echo "Install misp-dashboard"  
   yum install wget screen net-tools -y
+
+  sudo pip3 install virtualenv
+  $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
+  #$SUDO_WWW $RUN_PYTHON -- virtualenv -p python3 $PATH_TO_MISP/venv
+  
   # Install pyzmq to main MISP venv
-  debug "Installing PyZMQ"
+  echo "Installing PyZMQ"
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
   cd /var/www
   sudo mkdir misp-dashboard
